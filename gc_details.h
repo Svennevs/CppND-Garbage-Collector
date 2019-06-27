@@ -6,7 +6,7 @@ class PtrDetails
 {
 //  this class takes care of the memory blocks itself
   public:
-    unsigned refcount = 1; // current reference count
+    int refcount; // current reference count
     T *memPtr;         // raw pointer to allocated memory
     /* isArray is true if memPtr points
 to an allocated array. It is false
@@ -14,15 +14,19 @@ otherwise. */
     bool isArray; 
     /* If memPtr is pointing to an allocated
 array, then arraySize contains its size */
-    unsigned arraySize = 0; // size of array
+    int arraySize; // size of array
     // Here, ptr points to the allocated memory.
     // If this is an array, then size specifies
     // the size of the array.
-    PtrDetails(T *ptr): memPtr(ptr){isArray=false;}
-    PtrDetails(T *ptr, int sz): nmemPtr(ptr),arraySize(sz) {        
-        if(arraySize>1){
+    //PtrDetails(T *ptr): memPtr(ptr){isArray=false;}
+    PtrDetails(T *ptr, int size) {
+        memPtr=ptr;
+        refcount=1;
+        if (size>0){
+            
             isArray=true;
-        } else {
+            arraySize=size;
+        }else{
             isArray=false;
         }
     }

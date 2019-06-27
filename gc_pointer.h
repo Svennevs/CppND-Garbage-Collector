@@ -113,6 +113,8 @@ template<class T,int size> Pointer<T,size>::Pointer(T *t){
         atexit(shutdown); // atexit registers the function pointed to by func to be called on normal program termination
     first = false;
 
+
+
     // TODO: Implement Pointer constructor
     // Lab: Smart Pointer Project Lab
 
@@ -134,9 +136,9 @@ template<class T,int size> Pointer<T,size>::Pointer(T *t){
         p->refcount++;
     } else {
         if (size>0){ //if pointing to array
-            refContainer.push_back( PtrDetails<T[size]>(addr,arraySize) ); 
+            refContainer.push_back( PtrDetails<T>(addr,arraySize) ); 
         } else {
-            refContainer.push_back( PtrDetails<T>(addr)); 
+            refContainer.push_back( PtrDetails<T>(addr,0)); 
         }       
     }
 
@@ -174,7 +176,7 @@ Pointer<T, size>::~Pointer(){
     // or when memory is low.
 
     p->refcount--;
-    memfreed = collect();
+    collect();
     
 
 }
@@ -196,7 +198,6 @@ bool Pointer<T, size>::collect(){
                 continue;
             }
             // Remove unused entry from refContainer.
-            refContainer.remove(*p);  //works because of the == overloading
             // Free memory unless the Pointer is null.
             if(p->memPtr){
                 memfreed=true;
@@ -206,6 +207,8 @@ bool Pointer<T, size>::collect(){
                     delete p->memPtr;
                 }
             }
+            refContainer.remove(*p);  //works because of the == overloading
+
             // Restart the search.
             break;
         }
@@ -221,28 +224,29 @@ template <class T, int size>
 T *Pointer<T, size>::operator=(T *t){  // Overload assignment of pointer to Pointer.
 
     typename std::list<PtrDetails<T> >::iterator p;
+    
     p=findPtrInfo(addr); 
     p->refcount--;
     p=findPtrInfo(t); //check for t in the refContainer
-    if (pnew!= refContainer.end()){
-        pnew->refcount++;
-    }else{ //it could be that t was not in the refContainer yet
-        if (size>0){ 
-            refContainer.push_back( PtrDetails<T[size]>(addr,arraySize) ); 
+    if (p != refContainer.end()){
+        p->refcount++;
+    }else{
+        if (size>0){
+            refContainer.push_back( PtrDetails<T>(t,size) ); 
         } else {
-            refContainer.push_back( PtrDetails<T>(addr)); 
+            refContainer.push_back( PtrDetails<T>(t,0) ); 
         }      
     }
     //set Pointer attributes
     addr=t;
     arraySize=size;
-    if (arraySize>0){isArray=true;}else{isArray=false};
+    if (arraySize>0){isArray=true;}else{isArray=false;}
 }
 
 template <class T, int size>
 Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){ // Overload assignment of Pointer to Pointer.
     //should return reference to pointer. takes reference to pointer.
-
+    std::cout << "PtP" << std::endl;
     // TODO: Implement assignment
     typename std::list<PtrDetails<T> >::iterator pold;
     typename std::list<PtrDetails<T> >::iterator pnew;
@@ -257,9 +261,9 @@ Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){ // Overload assignme
     pnew->refcount++;
 
     // why do I store the address if I return rv anyway?
-    addr = rv.addr;
-    arraySize = rv.arraySize;
-    isArray = rv.isArray;
+    //addr = rv.addr;
+    //arraySize = rv.arraySize;
+    //isArray = rv.isArray;
 
     return rv;
 }
@@ -311,4 +315,5 @@ void Pointer<T, size>::shutdown(){
         p->refcount = 0;
     }
     collect();
+
 }
