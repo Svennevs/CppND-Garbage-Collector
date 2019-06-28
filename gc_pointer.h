@@ -113,8 +113,6 @@ template<class T,int size> Pointer<T,size>::Pointer(T *t){
         atexit(shutdown); // atexit registers the function pointed to by func to be called on normal program termination
     first = false;
 
-
-
     // TODO: Implement Pointer constructor
     // Lab: Smart Pointer Project Lab
 
@@ -125,6 +123,7 @@ template<class T,int size> Pointer<T,size>::Pointer(T *t){
         arraySize=size;
     }else{
         isArray=false;
+      	arraySize=0;
     }
 
     //check if address exists in refContainer
@@ -135,11 +134,7 @@ template<class T,int size> Pointer<T,size>::Pointer(T *t){
     if (p != refContainer.end()){ //memory block allocated already
         p->refcount++;
     } else {
-        if (size>0){ //if pointing to array
-            refContainer.push_back( PtrDetails<T>(addr,arraySize) ); 
-        } else {
-            refContainer.push_back( PtrDetails<T>(addr,0)); 
-        }       
+        refContainer.push_back( PtrDetails<T>(addr,isArray) );     
     }
 
 }
@@ -154,9 +149,7 @@ Pointer<T,size>::Pointer(const Pointer &ob){  //input is reference to object
     p->refcount++;        // increment ref count of PtrDetails element
     addr = ob.addr;       // set address equal to object
     isArray = ob.isArray; 
-    if (isArray){
-        arraySize = p->arraySize; //set arraySize
-    }
+    arraySize = ob.arraySize; //set arraySize
 }
 
 
@@ -166,7 +159,6 @@ Pointer<T, size>::~Pointer(){
     typename std::list<PtrDetails<T> >::iterator p;
     p = findPtrInfo(addr);
 
-
     // TODO: Finalize Pointer destructor
     // decrement ref count
     // Collect garbage when a pointer goes out of scope.
@@ -175,8 +167,9 @@ Pointer<T, size>::~Pointer(){
     // such as after refContainer has reached a certain size, after a certain number of Pointers have gone out of scope,
     // or when memory is low.
 
-    p->refcount--;
-    collect();
+    if (p->refcount){
+        p->refcount--;
+    }
     
 
 }
@@ -200,7 +193,6 @@ bool Pointer<T, size>::collect(){
             // Remove unused entry from refContainer.
             // Free memory unless the Pointer is null.
             if(p->memPtr){
-                memfreed=true;
                 if(p->isArray){
                     delete[] p->memPtr;
                 }else{
@@ -208,6 +200,7 @@ bool Pointer<T, size>::collect(){
                 }
             }
             refContainer.remove(*p);  //works because of the == overloading
+            memfreed=true;
 
             // Restart the search.
             break;
@@ -232,21 +225,21 @@ T *Pointer<T, size>::operator=(T *t){  // Overload assignment of pointer to Poin
         p->refcount++;
     }else{
         if (size>0){
-            refContainer.push_back( PtrDetails<T>(t,size) ); 
+            refContainer.push_back( PtrDetails<T>(t,true) ); 
         } else {
-            refContainer.push_back( PtrDetails<T>(t,0) ); 
+            refContainer.push_back( PtrDetails<T>(t,false) ); 
         }      
     }
     //set Pointer attributes
     addr=t;
-    arraySize=size;
-    if (arraySize>0){isArray=true;}else{isArray=false;}
+
+    return t;
 }
 
 template <class T, int size>
 Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){ // Overload assignment of Pointer to Pointer.
     //should return reference to pointer. takes reference to pointer.
-    std::cout << "PtP" << std::endl;
+
     // TODO: Implement assignment
     typename std::list<PtrDetails<T> >::iterator pold;
     typename std::list<PtrDetails<T> >::iterator pnew;
@@ -260,10 +253,7 @@ Pointer<T, size> &Pointer<T, size>::operator=(Pointer &rv){ // Overload assignme
     pold->refcount--;
     pnew->refcount++;
 
-    // why do I store the address if I return rv anyway?
-    //addr = rv.addr;
-    //arraySize = rv.arraySize;
-    //isArray = rv.isArray;
+    addr = rv.addr;
 
     return rv;
 }
@@ -303,9 +293,11 @@ Pointer<T, size>::findPtrInfo(T *ptr){
     return p;
 }
 
+
 // Clear refContainer when program exits.
 template <class T, int size>
 void Pointer<T, size>::shutdown(){
+    
     if (refContainerSize() == 0)
         return; // list is empty
     typename std::list<PtrDetails<T> >::iterator p;
@@ -315,5 +307,6 @@ void Pointer<T, size>::shutdown(){
         p->refcount = 0;
     }
     collect();
+    
 
 }
